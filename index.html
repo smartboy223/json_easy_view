@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Professional JSON Viewer - View, search, and analyze JSON data with ease">
+  <title>JSON Viewer Pro</title>
+  <style>
+    /* CSS Variables for theming */
+    :root {
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+      --radius: 8px;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --transition: all 0.2s ease;
+    }
+
+    /* Dark theme (default) */
+    [data-theme="dark"] {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-tertiary: #21262d;
+      --bg-hover: #1f242c;
+      --border-primary: #30363d;
+      --border-secondary: #21262d;
+      --text-primary: #e6edf3;
+      --text-secondary: #7d8590;
+      --text-muted: #5f6b7a;
+      --accent-primary: #2f81f7;
+      --accent-secondary: #388bfd;
+      --accent-hover: #58a6ff;
+      --success: #3fb950;
+      --warning: #d29922;
+      --error: #f85149;
+    }
+
+    /* Light theme */
+    [data-theme="light"] {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f6f8fa;
+      --bg-tertiary: #eaeef2;
+      --bg-hover: #f3f4f6;
+      --border-primary: #d0d7de;
+      --border-secondary: #eaeef2;
+      --text-primary: #1f2328;
+      --text-secondary: #57606a;
+      --text-muted: #6e7781;
+      --accent-primary: #0969da;
+      --accent-secondary: #1a7f37;
+      --accent-hover: #218bff;
+      --success: #1a7f37;
+      --warning: #9a6700;
+      --error: #cf222e;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-primary);
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+    }
+
+    .brand {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .brand span {
+      color: var(--accent-primary);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    /* Theme toggle */
+    .theme-toggle {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius);
+      padding: 0.5rem;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+    }
+
+    .theme-toggle:hover {
+      background: var(--bg-hover);
+      border-color: var(--accent-primary);
+    }
+
+    .theme-toggle svg {
+      width: 18px;
+      height: 18px;
+      fill: var(--text-secondary);
+    }
+
+    /* Main container */
+    .container {
+      flex: 1;
+      padding: 1.5rem;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .card-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.025em;
+    }
+
+    /* Form elements */
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .form-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+
+    input[type="text"],
+    input[type="file"],
+    select {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius);
+      color: var(--text-primary);
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+      transition: var(--transition);
+      min-width: 200px;
+    }
+
+    input[type="file"] {
+      padding: 0.375rem;
+      min-width: 280px;
+    }
+
+    input[type="text"]:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(47, 129, 247, 0.15);
+    }
+
+    input[type="text"]::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: var(--radius);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: var(--transition);
+      white-space: nowrap;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--accent-primary);
+      color: #fff;
+      border-color: var(--accent-primary);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-color: var(--border-primary);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--bg-hover);
+      border-color: var(--border-primary);
+    }
+
+    .btn-danger {
+      background: var(--error);
+      color: #fff;
+      border-color: var(--error);
+    }
+
+    .btn-sm {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.75rem;
+    }
+
+    /* Status badge */
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .status-success {
+      background: rgba(63, 185, 80, 0.15);
+      color: var(--success);
+    }
+
+    .status-error {
+      background: rgba(248, 81, 73, 0.15);
+      color: var(--error);
+    }
+
+    .status-warning {
+      background: rgba(210, 153, 34, 0.15);
+      color: var(--warning);
+    }
+
+    .status-muted {
+      background: var(--bg-tertiary);
+      color: var(--text-muted);
+    }
+
+    /* Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Table */
+    .table-container {
+      overflow-x: auto;
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius);
+      max-height: 60vh;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    th, td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-primary);
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--bg-tertiary);
+      font-weight: 600;
+      color: var(--text-secondary);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    tbody tr {
+      transition: var(--transition);
+    }
+
+    tbody tr:hover {
+      background: var(--bg-hover);
+      cursor: pointer;
+    }
+
+    tbody tr.selected {
+      background: rgba(47, 129, 247, 0.1);
+    }
+
+    /* Code/JSON output */
+    .code-block {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius);
+      padding: 1rem;
+      overflow: auto;
+      max-height: 60vh;
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      line-height: 1.6;
+    }
+
+    .json-key { color: #7ee787; }
+    .json-string { color: #a5d6ff; }
+    .json-number { color: #79c0ff; }
+    .json-boolean { color: #ff7b72; }
+    .json-null { color: #ff7b72; }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .pagination-info {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-left: auto;
+    }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed var(--border-primary);
+      border-radius: var(--radius);
+      padding: 2rem;
+      text-align: center;
+      transition: var(--transition);
+      cursor: pointer;
+    }
+
+    .drop-zone:hover {
+      border-color: var(--accent-primary);
+      background: var(--bg-hover);
+    }
+
+    .drop-zone.drag-over {
+      border-color: var(--accent-primary);
+      background: rgba(47, 129, 247, 0.1);
+    }
+
+    .drop-zone-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .drop-zone-text {
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+
+    .drop-zone-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    .empty-state-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+
+    /* Section */
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    /* Mode indicator */
+    .mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.625rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius);
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+
+    /* Loading spinner */
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border-primary);
+      border-top-color: var(--accent-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Tooltip */
+    .tooltip {
+      position: relative;
+    }
+
+    .tooltip:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.375rem 0.625rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius);
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      z-index: 1000;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+
+      .header {
+        padding: 0.75rem 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .brand {
+        font-size: 1.1rem;
+      }
+
+      .form-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      input[type="text"],
+      input[type="file"],
+      select {
+        min-width: unset;
+        width: 100%;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .pagination {
+        flex-wrap: wrap;
+      }
+    }
+
+    /* Print styles */
+    @media print {
+      .header,
+      .drop-zone,
+      .btn,
+      .pagination {
+        display: none !important;
+      }
+
+      body {
+        background: white;
+        color: black;
+      }
+
+      .code-block {
+        border: 1px solid #ccc;
+        background: white;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <span class="logo">📊</span>
+      <h1 class="brand">JSON <span>Viewer Pro</span></h1>
+    </div>
+    <div class="header-right">
+      <span id="mode-badge" class="mode-badge" style="display: none;">No File</span>
+      <button id="theme-toggle" class="theme-toggle tooltip" data-tooltip="Toggle theme" aria-label="Toggle theme">
+        <svg id="theme-icon-dark" viewBox="0 0 24 24" style="display: none;"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/></svg>
+        <svg id="theme-icon-light" viewBox="0 0 24 24"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Upload Section -->
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">📁 Load Data</span>
+        <span id="upload-status" class="status status-muted">Ready</span>
+      </div>
+      <div id="drop-zone" class="drop-zone">
+        <div class="drop-zone-icon">📂</div>
+        <div class="drop-zone-text">Drag & drop your JSON or CSV file here</div>
+        <div class="drop-zone-hint">or click to browse • Supports .json, .csv</div>
+        <input type="file" id="file-input" accept=".json,.csv,application/json,text/csv" style="display: none;">
+      </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section id="stats-section" class="card" style="display: none;">
+      <div class="card-header">
+        <span class="card-title">📊 Statistics</span>
+      </div>
+      <div class="stats-grid">
+        <div class="stat">
+          <div id="stat-total" class="stat-value">-</div>
+          <div class="stat-label">Total</div>
+        </div>
+        <div class="stat">
+          <div id="stat-records" class="stat-value">-</div>
+          <div class="stat-label">Records</div>
+        </div>
+        <div class="stat">
+          <div id="stat-errors" class="stat-value">-</div>
+          <div class="stat-label">Errors</div>
+        </div>
+        <div class="stat">
+          <div id="stat-matching" class="stat-value">-</div>
+          <div class="stat-label">Matching</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tools Section -->
+    <section id="tools-section" class="card" style="display: none;">
+      <div class="card-header">
+        <span class="card-title">🔍 Tools</span>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Search</label>
+          <input type="text" id="search-input" placeholder="Search in data...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Field</label>
+          <select id="field-select">
+            <option value="any">Any field</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Page Size</label>
+          <input type="text" id="page-size" value="50" style="width: 80px;">
+        </div>
+        <button id="search-btn" class="btn btn-primary">Search</button>
+        <button id="clear-btn" class="btn btn-secondary">Clear</button>
+        <button id="random-btn" class="btn btn-secondary">Random</button>
+      </div>
+    </section>
+
+    <!-- Results Section -->
+    <section id="results-section" class="card" style="display: none; flex: 1; display: flex; flex-direction: column;">
+      <div class="card-header">
+        <span class="card-title">📋 Results</span>
+        <div class="pagination">
+          <button id="prev-btn" class="btn btn-sm btn-secondary" disabled>← Prev</button>
+          <span id="page-info" class="pagination-info">Page 1 of 1</span>
+          <button id="next-btn" class="btn btn-sm btn-secondary" disabled>Next →</button>
+          <button id="export-btn" class="btn btn-sm btn-secondary">Export</button>
+          <button id="view-json-btn" class="btn btn-sm btn-secondary">View JSON</button>
+        </div>
+      </div>
+      <div id="table-container" class="table-container" style="flex: 1;">
+        <table id="results-table">
+          <thead>
+            <tr id="table-header">
+              <th>Select a file to view data</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- JSON View Modal -->
+    <section id="json-modal" class="card" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; max-width: 90vw; max-height: 90vh; width: 800px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+      <div class="card-header">
+        <span class="card-title">📄 JSON Preview</span>
+        <button id="close-modal" class="btn btn-sm btn-secondary">✕ Close</button>
+      </div>
+      <div class="code-block" id="json-preview" style="max-height: 70vh;"></div>
+    </section>
+
+    <!-- Modal overlay -->
+    <div id="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 999;"></div>
+  </main>
+
+  <script>
+    // Application State
+    const AppState = {
+      currentFile: null,
+      data: null,
+      dataType: null, // 'json' or 'csv'
+      keys: [],
+      fields: [],
+      filteredKeys: [],
+      currentPage: 0,
+      pageSize: 50,
+      theme: localStorage.getItem('theme') || 'dark',
+      selectedRow: null
+    };
+
+    // DOM Elements
+    const Elements = {
+      themeToggle: document.getElementById('theme-toggle'),
+      themeIconDark: document.getElementById('theme-icon-dark'),
+      themeIconLight: document.getElementById('theme-icon-light'),
+      dropZone: document.getElementById('drop-zone'),
+      fileInput: document.getElementById('file-input'),
+      uploadStatus: document.getElementById('upload-status'),
+      modeBadge: document.getElementById('mode-badge'),
+      statsSection: document.getElementById('stats-section'),
+      toolsSection: document.getElementById('tools-section'),
+      resultsSection: document.getElementById('results-section'),
+      statTotal: document.getElementById('stat-total'),
+      statRecords: document.getElementById('stat-records'),
+      statErrors: document.getElementById('stat-errors'),
+      statMatching: document.getElementById('stat-matching'),
+      searchInput: document.getElementById('search-input'),
+      fieldSelect: document.getElementById('field-select'),
+      pageSize: document.getElementById('page-size'),
+      searchBtn: document.getElementById('search-btn'),
+      clearBtn: document.getElementById('clear-btn'),
+      randomBtn: document.getElementById('random-btn'),
+      prevBtn: document.getElementById('prev-btn'),
+      nextBtn: document.getElementById('next-btn'),
+      pageInfo: document.getElementById('page-info'),
+      exportBtn: document.getElementById('export-btn'),
+      viewJsonBtn: document.getElementById('view-json-btn'),
+      tableHeader: document.getElementById('table-header'),
+      tableBody: document.getElementById('table-body'),
+      jsonModal: document.getElementById('json-modal'),
+      modalOverlay: document.getElementById('modal-overlay'),
+      closeModal: document.getElementById('close-modal'),
+      jsonPreview: document.getElementById('json-preview')
+    };
+
+    // Utility Functions
+    const Utils = {
+      escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = String(str ?? '');
+        return div.innerHTML;
+      },
+
+      formatNumber(num) {
+        return new Intl.NumberFormat().format(num);
+      },
+
+      debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+          const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+          };
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+        };
+      },
+
+      downloadFile(content, filename, type) {
+        const blob = new Blob([content], { type });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      },
+
+      parseCSVLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          const nextChar = line[i + 1];
+
+          if (char === '"') {
+            if (inQuotes && nextChar === '"') {
+              current += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+
+        result.push(current.trim());
+        return result;
+      }
+    };
+
+    // JSON Syntax Highlighter
+    const SyntaxHighlighter = {
+      highlight(json) {
+        if (!json) return '';
+        const str = typeof json === 'string' ? json : JSON.stringify(json, null, 2);
+
+        return str
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/(".*?")/g, '<span class="json-string">$1</span>')
+          .replace(/\b(true|false)\b/g, '<span class="json-boolean">$1</span>')
+          .replace(/\b(null)\b/g, '<span class="json-null">$1</span>')
+          .replace(/\b(\d+\.?\d*)\b/g, '<span class="json-number">$1</span>')
+          .replace(/([{}[\]])/g, '<span style="color: #ff7b72;">$1</span>')
+          .replace(/(".*?")\s*:/g, '<span class="json-key">$1</span>:');
+      }
+    };
+
+    // Theme Manager
+    const ThemeManager = {
+      init() {
+        document.documentElement.setAttribute('data-theme', AppState.theme);
+        this.updateIcon();
+
+        Elements.themeToggle.addEventListener('click', () => this.toggle());
+      },
+
+      toggle() {
+        AppState.theme = AppState.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', AppState.theme);
+        localStorage.setItem('theme', AppState.theme);
+        this.updateIcon();
+      },
+
+      updateIcon() {
+        if (AppState.theme === 'dark') {
+          Elements.themeIconDark.style.display = 'block';
+          Elements.themeIconLight.style.display = 'none';
+        } else {
+          Elements.themeIconDark.style.display = 'none';
+          Elements.themeIconLight.style.display = 'block';
+        }
+      }
+    };
+
+    // File Manager
+    const FileManager = {
+      init() {
+        // Drag and drop
+        Elements.dropZone.addEventListener('click', () => Elements.fileInput.click());
+        Elements.dropZone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          Elements.dropZone.classList.add('drag-over');
+        });
+        Elements.dropZone.addEventListener('dragleave', () => {
+          Elements.dropZone.classList.remove('drag-over');
+        });
+        Elements.dropZone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          Elements.dropZone.classList.remove('drag-over');
+          const files = e.dataTransfer.files;
+          if (files.length > 0) this.handleFile(files[0]);
+        });
+
+        // File input
+        Elements.fileInput.addEventListener('change', (e) => {
+          if (e.target.files.length > 0) this.handleFile(e.target.files[0]);
+        });
+      },
+
+      async handleFile(file) {
+        AppState.currentFile = file;
+        Elements.uploadStatus.textContent = 'Loading...';
+        Elements.uploadStatus.className = 'status status-warning';
+
+        const fileName = file.name.toLowerCase();
+        const isJson = fileName.endsWith('.json') || file.type === 'application/json';
+        const isCsv = fileName.endsWith('.csv') || file.type === 'text/csv';
+
+        try {
+          if (isJson) {
+            await this.loadJSON(file);
+          } else if (isCsv) {
+            await this.loadCSV(file);
+          } else {
+            throw new Error('Unsupported file type. Please upload a JSON or CSV file.');
+          }
+
+          Elements.uploadStatus.textContent = 'Loaded';
+          Elements.uploadStatus.className = 'status status-success';
+        } catch (error) {
+          Elements.uploadStatus.textContent = 'Error';
+          Elements.uploadStatus.className = 'status status-error';
+          alert(`Error loading file: ${error.message}`);
+          console.error(error);
+        }
+      },
+
+      async loadJSON(file) {
+        const text = await file.text();
+        AppState.data = JSON.parse(text);
+        AppState.dataType = 'json';
+
+        // Extract keys for object data
+        if (AppState.data && typeof AppState.data === 'object') {
+          AppState.keys = Object.keys(AppState.data);
+
+          // Extract fields from first few records
+          const sampleKeys = AppState.keys.slice(0, 100);
+          const fieldSet = new Set();
+          sampleKeys.forEach(key => {
+            const item = AppState.data[key];
+            if (item && typeof item === 'object') {
+              Object.keys(item).forEach(f => fieldSet.add(f));
+            }
+          });
+          AppState.fields = Array.from(fieldSet).sort();
+        }
+
+        AppState.filteredKeys = [...AppState.keys];
+        AppState.currentPage = 0;
+
+        this.updateUI('json');
+      },
+
+      async loadCSV(file) {
+        const text = await file.text();
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+
+        if (lines.length < 2) {
+          throw new Error('CSV file appears to be empty or invalid');
+        }
+
+        const headers = Utils.parseCSVLine(lines[0]);
+        const data = [];
+        let errors = 0;
+
+        for (let i = 1; i < lines.length; i++) {
+          try {
+            const values = Utils.parseCSVLine(lines[i]);
+            const row = {};
+            headers.forEach((h, idx) => {
+              row[h] = values[idx] || '';
+            });
+            data.push(row);
+          } catch (e) {
+            errors++;
+          }
+        }
+
+        AppState.data = data;
+        AppState.dataType = 'csv';
+        AppState.keys = data.map((_, i) => String(i));
+        AppState.fields = headers;
+        AppState.filteredKeys = [...AppState.keys];
+        AppState.currentPage = 0;
+
+        this.updateUI('csv', { errors });
+      },
+
+      updateUI(type, options = {}) {
+        // Update mode badge
+        Elements.modeBadge.textContent = type.toUpperCase();
+        Elements.modeBadge.style.display = 'flex';
+
+        // Show sections
+        Elements.statsSection.style.display = 'block';
+        Elements.toolsSection.style.display = 'block';
+        Elements.resultsSection.style.display = 'flex';
+
+        // Update stats
+        Elements.statTotal.textContent = Utils.formatNumber(AppState.keys.length);
+        Elements.statRecords.textContent = Utils.formatNumber(AppState.filteredKeys.length);
+        Elements.statErrors.textContent = Utils.formatNumber(options.errors || 0);
+        Elements.statMatching.textContent = Utils.formatNumber(AppState.filteredKeys.length);
+
+        // Update field select
+        Elements.fieldSelect.innerHTML = '<option value="any">Any field</option>';
+        AppState.fields.forEach(field => {
+          const option = document.createElement('option');
+          option.value = field;
+          option.textContent = field;
+          Elements.fieldSelect.appendChild(option);
+        });
+
+        // Render table
+        DataViewer.renderTable();
+      }
+    };
+
+    // Data Viewer
+    const DataViewer = {
+      init() {
+        // Search
+        Elements.searchBtn.addEventListener('click', () => this.search());
+        Elements.searchInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') this.search();
+        });
+        Elements.searchInput.addEventListener('input', Utils.debounce(() => this.search(), 300));
+
+        // Clear
+        Elements.clearBtn.addEventListener('click', () => this.clearSearch());
+
+        // Random
+        Elements.randomBtn.addEventListener('click', () => this.showRandom());
+
+        // Pagination
+        Elements.prevBtn.addEventListener('click', () => this.prevPage());
+        Elements.nextBtn.addEventListener('click', () => this.nextPage());
+        Elements.pageSize.addEventListener('change', () => {
+          AppState.pageSize = parseInt(Elements.pageSize.value) || 50;
+          AppState.currentPage = 0;
+          this.renderTable();
+        });
+
+        // Export
+        Elements.exportBtn.addEventListener('click', () => this.exportData());
+
+        // JSON View
+        Elements.viewJsonBtn.addEventListener('click', () => this.showJSONModal());
+        Elements.closeModal.addEventListener('click', () => this.hideJSONModal());
+        Elements.modalOverlay.addEventListener('click', () => this.hideJSONModal());
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') this.hideJSONModal();
+          if (e.ctrlKey || e.metaKey) {
+            if (e.key === 'f') {
+              e.preventDefault();
+              Elements.searchInput.focus();
+            }
+            if (e.key === 'e') {
+              e.preventDefault();
+              this.exportData();
+            }
+          }
+        });
+      },
+
+      search() {
+        const query = Elements.searchInput.value.trim().toLowerCase();
+        const field = Elements.fieldSelect.value;
+
+        if (!query) {
+          AppState.filteredKeys = [...AppState.keys];
+        } else {
+          AppState.filteredKeys = AppState.keys.filter(key => {
+            let data;
+            if (AppState.dataType === 'json') {
+              data = AppState.data[key];
+            } else {
+              data = AppState.data[parseInt(key)];
+            }
+
+            if (!data) return false;
+
+            if (field === 'any') {
+              const values = Object.values(data).map(v => String(v).toLowerCase());
+              return values.some(v => v.includes(query));
+            } else {
+              const value = String(data[field] ?? '').toLowerCase();
+              return value.includes(query);
+            }
+          });
+        }
+
+        AppState.currentPage = 0;
+        Elements.statMatching.textContent = Utils.formatNumber(AppState.filteredKeys.length);
+        this.renderTable();
+      },
+
+      clearSearch() {
+        Elements.searchInput.value = '';
+        Elements.fieldSelect.value = 'any';
+        this.search();
+      },
+
+      showRandom() {
+        if (AppState.filteredKeys.length === 0) return;
+        const randomKey = AppState.filteredKeys[Math.floor(Math.random() * AppState.filteredKeys.length)];
+        let data;
+        if (AppState.dataType === 'json') {
+          data = AppState.data[randomKey];
+        } else {
+          data = AppState.data[parseInt(randomKey)];
+        }
+
+        Elements.jsonPreview.innerHTML = SyntaxHighlighter.highlight(data);
+        this.showJSONModal();
+      },
+
+      prevPage() {
+        if (AppState.currentPage > 0) {
+          AppState.currentPage--;
+          this.renderTable();
+        }
+      },
+
+      nextPage() {
+        const maxPage = Math.ceil(AppState.filteredKeys.length / AppState.pageSize) - 1;
+        if (AppState.currentPage < maxPage) {
+          AppState.currentPage++;
+          this.renderTable();
+        }
+      },
+
+      renderTable() {
+        const start = AppState.currentPage * AppState.pageSize;
+        const end = start + AppState.pageSize;
+        const pageKeys = AppState.filteredKeys.slice(start, end);
+
+        // Update pagination
+        const totalPages = Math.ceil(AppState.filteredKeys.length / AppState.pageSize);
+        Elements.pageInfo.textContent = `Page ${AppState.currentPage + 1} of ${totalPages} (${Utils.formatNumber(AppState.filteredKeys.length)} items)`;
+        Elements.prevBtn.disabled = AppState.currentPage === 0;
+        Elements.nextBtn.disabled = AppState.currentPage >= totalPages - 1;
+
+        // Determine columns
+        let columns = [];
+        if (AppState.fields.length > 0) {
+          columns = AppState.fields.slice(0, 8);
+        } else if (pageKeys.length > 0) {
+          const sample = AppState.dataType === 'json' ? AppState.data[pageKeys[0]] : AppState.data[parseInt(pageKeys[0])];
+          if (sample && typeof sample === 'object') {
+            columns = Object.keys(sample).slice(0, 8);
+          }
+        }
+
+        // Render header
+        Elements.tableHeader.innerHTML = columns.map(col => `<th>${Utils.escapeHtml(col)}</th>`).join('');
+
+        // Render body
+        Elements.tableBody.innerHTML = pageKeys.map(key => {
+          let rowData;
+          if (AppState.dataType === 'json') {
+            rowData = AppState.data[key];
+          } else {
+            rowData = AppState.data[parseInt(key)];
+          }
+
+          return `<tr data-key="${Utils.escapeHtml(key)}" class="${key === AppState.selectedRow ? 'selected' : ''}">
+            ${columns.map(col => `<td>${Utils.escapeHtml(rowData?.[col] ?? '')}</td>`).join('')}
+          </tr>`;
+        }).join('');
+
+        // Add click handlers
+        Elements.tableBody.querySelectorAll('tr').forEach(row => {
+          row.addEventListener('click', () => {
+            const key = row.getAttribute('data-key');
+            AppState.selectedRow = key;
+            this.showRowDetails(key);
+
+            // Update selection visual
+            Elements.tableBody.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
+            row.classList.add('selected');
+          });
+        });
+      },
+
+      showRowDetails(key) {
+        let data;
+        if (AppState.dataType === 'json') {
+          data = AppState.data[key];
+        } else {
+          data = AppState.data[parseInt(key)];
+        }
+
+        Elements.jsonPreview.innerHTML = SyntaxHighlighter.highlight(data);
+        this.showJSONModal();
+      },
+
+      showJSONModal() {
+        Elements.jsonModal.style.display = 'block';
+        Elements.modalOverlay.style.display = 'block';
+      },
+
+      hideJSONModal() {
+        Elements.jsonModal.style.display = 'none';
+        Elements.modalOverlay.style.display = 'none';
+      },
+
+      exportData() {
+        if (!AppState.data) return;
+
+        const exportData = AppState.filteredKeys.map(key => {
+          if (AppState.dataType === 'json') {
+            return { id: key, ...AppState.data[key] };
+          } else {
+            return AppState.data[parseInt(key)];
+          }
+        });
+
+        const json = JSON.stringify(exportData, null, 2);
+        const filename = `export_${new Date().toISOString().slice(0, 10)}.json`;
+        Utils.downloadFile(json, filename, 'application/json');
+      }
+    };
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      ThemeManager.init();
+      FileManager.init();
+      DataViewer.init();
+
+      // Load sample data on first visit hint
+      console.log('JSON Viewer Pro loaded. Drag a file or use the sample-data.json file to test.');
+    });
+  </script>
+</body>
+</html>

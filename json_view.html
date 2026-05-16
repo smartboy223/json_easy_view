@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>insanejohnpwnforums.json viewer</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; }
+      .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+      input[type="text"] { padding: 6px 8px; min-width: 260px; }
+      button { padding: 6px 10px; }
+      pre { background: #0b1020; color: #e6edf3; padding: 12px; overflow: auto; max-height: 70vh; }
+      .muted { color: #5f6b7a; }
+      .card { border: 1px solid #d0d7de; border-radius: 8px; padding: 12px; margin-top: 12px; }
+      .ok { color: #1a7f37; }
+      .bad { color: #cf222e; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td { border-bottom: 1px solid #d0d7de; padding: 8px 10px; text-align: left; vertical-align: top; }
+      th { background: #f6f8fa; font-weight: 600; position: sticky; top: 0; z-index: 1; }
+      .tableWrap { max-height: 52vh; overflow: auto; border: 1px solid #d0d7de; border-radius: 8px; }
+      .clickRow { cursor: pointer; }
+      .clickRow:hover { background: #f6f8fa; }
+      .colFilter { width: 100%; min-width: 0; box-sizing: border-box; padding: 5px 6px; }
+    </style>
+  </head>
+  <body>
+    <h1>JSON viewer</h1>
+    <div class="card">
+      <div class="row">
+        <label>
+          Select file:
+          <input id="file" type="file" accept="application/json,.json,text/csv,.csv" />
+        </label>
+        <button id="load" disabled>Load</button>
+        <span id="status" class="muted">No file loaded</span>
+      </div>
+
+      <div class="row" style="margin-top: 10px;">
+        <strong>Mode:</strong>
+        <span id="mode" class="muted">-</span>
+      </div>
+
+      <div id="jsonTools" class="row" style="margin-top: 10px; display: none;">
+        <label>
+          Lookup ID:
+          <input id="id" type="text" placeholder="e.g. 100005" />
+        </label>
+        <button id="lookup" disabled>Lookup</button>
+        <button id="random" disabled>Random</button>
+        <span class="muted">Browse below to view all records (paged)</span>
+      </div>
+
+      <div id="jsonBrowse" style="margin-top: 10px; display: none;">
+        <div class="row">
+          <label>
+            Search text:
+            <input id="jq" type="text" placeholder="e.g. 212.102.51.2 or ZxD" />
+          </label>
+          <label>
+            Field:
+            <select id="jcol">
+              <option value="any">any</option>
+              <option value="id">id</option>
+            </select>
+          </label>
+          <label>
+            Page size:
+            <input id="pageSize" type="text" value="100" style="min-width: 90px;" />
+          </label>
+          <button id="jsearch" disabled>Search</button>
+          <button id="jclear" disabled>Clear</button>
+          <button id="jfull" disabled>Render full JSON</button>
+        </div>
+        <div class="row" style="margin-top: 10px;">
+          <button id="prev" disabled>Prev</button>
+          <button id="next" disabled>Next</button>
+          <span id="pageInfo" class="muted">-</span>
+        </div>
+        <div class="muted" style="margin-top: 8px;">
+          Tip: search is case-insensitive and can match across all fields when Field = any.
+        </div>
+      </div>
+
+      <div id="csvTools" style="margin-top: 10px; display: none;">
+        <div class="row">
+          <label>
+            Search text:
+            <input id="q" type="text" placeholder="e.g. 212.102.51.2 or ZxD" />
+          </label>
+          <label>
+            Column:
+            <select id="col">
+              <option value="any">any</option>
+              <option value="id">id</option>
+              <option value="username">username</option>
+              <option value="ip">ip</option>
+              <option value="hostname">hostname</option>
+              <option value="error">error</option>
+            </select>
+          </label>
+          <label>
+            Max results:
+            <input id="limit" type="text" value="100" style="min-width: 90px;" />
+          </label>
+          <button id="search" disabled>Search</button>
+        </div>
+        <div class="muted" style="margin-top: 8px;">
+          Tip: use <code>insanejohnpwnforums_records.csv</code> for fastest searching.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div>Total: <span id="total">-</span></div>
+        <div>Records: <span id="records">-</span></div>
+        <div>Errors: <span id="errors">-</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row"><strong>Result</strong></div>
+      <div id="list" style="margin-top: 10px;"></div>
+      <pre id="out">(nothing yet)</pre>
+    </div>
+
+    <script>
+      const els = {
+        file: document.getElementById('file'),
+        load: document.getElementById('load'),
+        status: document.getElementById('status'),
+        id: document.getElementById('id'),
+        lookup: document.getElementById('lookup'),
+        random: document.getElementById('random'),
+        total: document.getElementById('total'),
+        records: document.getElementById('records'),
+        errors: document.getElementById('errors'),
+        out: document.getElementById('out'),
+        list: document.getElementById('list'),
+      };
+
+      let jsonData = null;
+      let jsonKeys = null;
+      let csvFile = null;
+      let currentMode = null;
+      let viewKeys = null;
+      let viewPage = 0;
+      let jsonFields = [];
+      let columnFilters = {};
+      let filterTimer = null;
+
+      function setStatus(text, kind) {
+        els.status.textContent = text;
+        els.status.classList.remove('ok', 'bad', 'muted');
+        els.status.classList.add(kind || 'muted');
+      }
+
+      function render(obj) {
+        els.out.textContent = JSON.stringify(obj, null, 2);
+      }
+
+      function setMode(mode) {
+        currentMode = mode;
+        document.getElementById('mode').textContent = mode || '-';
+        document.getElementById('jsonTools').style.display = mode === 'JSON' ? '' : 'none';
+        document.getElementById('csvTools').style.display = mode === 'CSV' ? '' : 'none';
+        document.getElementById('jsonBrowse').style.display = mode === 'JSON' ? '' : 'none';
+        if (mode !== 'JSON') {
+          els.list.textContent = '';
+          els.out.textContent = '(nothing yet)';
+        }
+      }
+
+      function escapeHtml(s) {
+        return String(s ?? '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#39;');
+      }
+
+      function toLowerSafe(v) {
+        return String(v ?? '').toLowerCase();
+      }
+
+      function getPageSize() {
+        const raw = document.getElementById('pageSize').value;
+        const n = Number.parseInt(String(raw || '100'), 10);
+        return Math.min(2000, Math.max(1, Number.isFinite(n) ? n : 100));
+      }
+
+      function getPreviewColumns() {
+        const common = ['username', 'ip', 'hostname', 'email', 'error'];
+        const out = [];
+        const set = new Set(jsonFields);
+        for (const k of common) if (set.has(k)) out.push(k);
+        const max = 8;
+        for (const k of jsonFields) {
+          if (out.length >= max) break;
+          if (set.has(k) && !out.includes(k)) out.push(k);
+        }
+        return out;
+      }
+
+      function ensureColumnFilters(cols) {
+        const next = {};
+        next.id = columnFilters.id || '';
+        for (const c of cols) next[c] = columnFilters[c] || '';
+        columnFilters = next;
+      }
+
+      function setPagerState(total) {
+        const pageSize = getPageSize();
+        const pageCount = Math.max(1, Math.ceil(total / pageSize));
+        const clamped = Math.min(pageCount - 1, Math.max(0, viewPage));
+        viewPage = clamped;
+        document.getElementById('prev').disabled = viewPage <= 0;
+        document.getElementById('next').disabled = viewPage >= pageCount - 1;
+        document.getElementById('pageInfo').textContent = `Page ${viewPage + 1}/${pageCount} (${total} items)`;
+      }
+
+      function renderList() {
+        if (!jsonData || !viewKeys) {
+          els.list.textContent = '';
+          return;
+        }
+
+        const pageSize = getPageSize();
+        const total = viewKeys.length;
+        setPagerState(total);
+        const start = viewPage * pageSize;
+        const end = Math.min(total, start + pageSize);
+        const slice = viewKeys.slice(start, end);
+
+        const cols = getPreviewColumns();
+        ensureColumnFilters(cols);
+        const header = ['id', ...cols];
+
+        let html = '<div class="tableWrap"><table><thead><tr>';
+        for (const h of header) html += `<th>${escapeHtml(h)}</th>`;
+        html += '</tr><tr>';
+        html += `<th><input class="colFilter" data-col="id" type="text" value="${escapeHtml(columnFilters.id)}" placeholder="filter" /></th>`;
+        for (const c of cols) {
+          html += `<th><input class="colFilter" data-col="${escapeHtml(c)}" type="text" value="${escapeHtml(columnFilters[c])}" placeholder="filter" /></th>`;
+        }
+        html += '</tr></thead><tbody>';
+
+        for (const k of slice) {
+          const v = jsonData[k] || {};
+          html += `<tr class="clickRow" data-id="${escapeHtml(k)}">`;
+          html += `<td>${escapeHtml(k)}</td>`;
+          for (const c of cols) {
+            const cell = v?.[c];
+            html += `<td>${escapeHtml(cell)}</td>`;
+          }
+          html += '</tr>';
+        }
+
+        html += '</tbody></table></div>';
+        els.list.innerHTML = html;
+
+        const inputs = els.list.querySelectorAll('input[data-col]');
+        for (const inp of inputs) {
+          inp.addEventListener('click', (e) => e.stopPropagation());
+          inp.addEventListener('input', () => {
+            const col = inp.getAttribute('data-col');
+            if (!col) return;
+            columnFilters[col] = inp.value.trim().toLowerCase();
+            scheduleRecomputeView();
+          });
+        }
+
+        const rows = els.list.querySelectorAll('tr[data-id]');
+        for (const r of rows) {
+          r.addEventListener('click', () => {
+            const id = r.getAttribute('data-id');
+            if (!id) return;
+            const v = jsonData[id];
+            if (v === undefined) render({ id, found: false });
+            else render({ id, ...v });
+          });
+        }
+      }
+
+      function rebuildFieldOptions() {
+        const sel = document.getElementById('jcol');
+        const keep = new Set(['any', 'id']);
+        while (sel.options.length) sel.remove(0);
+        const base = [
+          { value: 'any', label: 'any' },
+          { value: 'id', label: 'id' },
+        ];
+        for (const o of base) sel.add(new Option(o.label, o.value));
+        for (const f of jsonFields) {
+          if (keep.has(f)) continue;
+          sel.add(new Option(f, f));
+        }
+      }
+
+      function computeJsonFields() {
+        const set = new Set();
+        const max = Math.min(jsonKeys.length, 200);
+        for (let i = 0; i < max; i++) {
+          const k = jsonKeys[i];
+          const v = jsonData[k];
+          if (!v || typeof v !== 'object') continue;
+          for (const kk of Object.keys(v)) set.add(kk);
+        }
+        jsonFields = Array.from(set).sort((a, b) => a.localeCompare(b));
+      }
+
+      function jsonRowMatches(id, row, q, col) {
+        if (!q) return false;
+        const hay = (v) => toLowerSafe(v);
+        if (col === 'id') return hay(id).includes(q);
+        if (col === 'any') {
+          if (hay(id).includes(q)) return true;
+          if (!row || typeof row !== 'object') return false;
+          for (const kk of Object.keys(row)) {
+            if (hay(row[kk]).includes(q)) return true;
+          }
+          return false;
+        }
+        return hay(row?.[col]).includes(q);
+      }
+
+      function recomputeView(resetPage) {
+        if (!jsonData || !jsonKeys) return;
+        const qRaw = document.getElementById('jq').value.trim();
+        const q = qRaw.toLowerCase();
+        const col = document.getElementById('jcol').value || 'any';
+
+        let next = jsonKeys;
+
+        if (q) {
+          const matches = [];
+          for (const id of next) {
+            const row = jsonData[id];
+            if (jsonRowMatches(id, row, q, col)) matches.push(id);
+          }
+          next = matches;
+        }
+
+        const cols = getPreviewColumns();
+        ensureColumnFilters(cols);
+        const activeFilters = Object.entries(columnFilters).filter(([, v]) => Boolean(v));
+        if (activeFilters.length) {
+          const matches = [];
+          for (const id of next) {
+            const row = jsonData[id] || {};
+            let ok = true;
+            for (const [k, v] of activeFilters) {
+              if (k === 'id') {
+                if (!toLowerSafe(id).includes(v)) {
+                  ok = false;
+                  break;
+                }
+              } else {
+                if (!toLowerSafe(row?.[k]).includes(v)) {
+                  ok = false;
+                  break;
+                }
+              }
+            }
+            if (ok) matches.push(id);
+          }
+          next = matches;
+        }
+
+        viewKeys = next.slice();
+        if (resetPage) viewPage = 0;
+        setStatus(`${q || activeFilters.length ? 'Found' : 'Showing all'} ${viewKeys.length}${q || activeFilters.length ? ' matches' : ''}`, 'ok');
+        renderList();
+      }
+
+      function scheduleRecomputeView() {
+        if (filterTimer) clearTimeout(filterTimer);
+        filterTimer = setTimeout(() => recomputeView(true), 150);
+      }
+
+      function parseCsvLine(line) {
+        const out = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              cur += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (ch === ',' && !inQuotes) {
+            out.push(cur);
+            cur = '';
+          } else {
+            cur += ch;
+          }
+        }
+        out.push(cur);
+        return out;
+      }
+
+      async function scanCsv(file, opts) {
+        const decoder = new TextDecoder('utf-8');
+        const reader = file.stream().getReader();
+        let buf = '';
+        let isHeader = true;
+        let total = 0;
+        let records = 0;
+        let errors = 0;
+        const matches = [];
+
+        const q = (opts.q || '').toLowerCase();
+        const col = opts.col || 'any';
+        const limit = Math.max(1, Number.parseInt(String(opts.limit || '100'), 10) || 100);
+
+        function rowMatches(r) {
+          if (!q) return false;
+          const hay = (v) => (v || '').toLowerCase();
+          if (col === 'any') {
+            return (
+              hay(r.id).includes(q) ||
+              hay(r.username).includes(q) ||
+              hay(r.ip).includes(q) ||
+              hay(r.hostname).includes(q) ||
+              hay(r.error).includes(q)
+            );
+          }
+          return hay(r[col]).includes(q);
+        }
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split(/\r?\n/);
+          buf = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line) continue;
+            if (isHeader) {
+              isHeader = false;
+              continue;
+            }
+
+            const cols = parseCsvLine(line);
+            const r = {
+              id: cols[0] ?? '',
+              username: cols[1] ?? '',
+              ip: cols[2] ?? '',
+              hostname: cols[3] ?? '',
+              error: cols[4] ?? '',
+            };
+
+            total++;
+            if (r.error) errors++;
+            else records++;
+
+            if (opts.collectMatches && rowMatches(r)) {
+              matches.push(r);
+              if (matches.length >= limit) {
+                reader.cancel();
+                return { total, records, errors, matches, truncated: true };
+              }
+            }
+          }
+        }
+
+        return { total, records, errors, matches, truncated: false };
+      }
+
+      els.file.addEventListener('change', () => {
+        els.load.disabled = !els.file.files || els.file.files.length === 0;
+        if (els.load.disabled) setStatus('No file selected', 'muted');
+        else setStatus('Ready to load', 'muted');
+      });
+
+      els.load.addEventListener('click', async () => {
+        const file = els.file.files?.[0];
+        if (!file) return;
+        setStatus('Loading...', 'muted');
+        els.load.disabled = true;
+        els.lookup.disabled = true;
+        els.random.disabled = true;
+        document.getElementById('jsearch').disabled = true;
+        document.getElementById('jclear').disabled = true;
+        document.getElementById('jfull').disabled = true;
+        document.getElementById('prev').disabled = true;
+        document.getElementById('next').disabled = true;
+        document.getElementById('search').disabled = true;
+        setMode(null);
+
+        const lowerName = (file.name || '').toLowerCase();
+        const isCsv = lowerName.endsWith('.csv') || file.type === 'text/csv';
+        const isJson = lowerName.endsWith('.json') || file.type === 'application/json';
+
+        if (isCsv && !isJson) {
+          try {
+            setMode('CSV');
+            csvFile = file;
+            setStatus(`Loaded CSV: ${file.name} (scanning stats...)`, 'muted');
+            const stats = await scanCsv(file, { collectMatches: false });
+            els.total.textContent = String(stats.total);
+            els.records.textContent = String(stats.records);
+            els.errors.textContent = String(stats.errors);
+            setStatus(`Loaded CSV: ${file.name}`, 'ok');
+            document.getElementById('search').disabled = false;
+            render({ hint: 'Enter a search value and click Search' });
+          } catch (e) {
+            csvFile = null;
+            setStatus('Failed to read CSV', 'bad');
+            render({ error: String(e) });
+          } finally {
+            els.load.disabled = false;
+          }
+          return;
+        }
+
+        const text = await file.text();
+        try {
+          setMode('JSON');
+          jsonData = JSON.parse(text);
+          jsonKeys = Object.keys(jsonData);
+          setStatus(`Loaded JSON: ${file.name}`, 'ok');
+          els.lookup.disabled = false;
+          els.random.disabled = false;
+          els.total.textContent = String(jsonKeys.length);
+          computeJsonFields();
+          rebuildFieldOptions();
+          viewKeys = jsonKeys.slice();
+          viewPage = 0;
+          columnFilters = {};
+          document.getElementById('jsearch').disabled = false;
+          document.getElementById('jclear').disabled = false;
+          document.getElementById('jfull').disabled = false;
+          render({ hint: 'Click a row below to view details. Use Lookup ID for direct access.' });
+          recomputeView(true);
+        } catch (e) {
+          jsonData = null;
+          jsonKeys = null;
+          viewKeys = null;
+          viewPage = 0;
+          columnFilters = {};
+          setMode(null);
+          setStatus('Failed to parse JSON. If you selected a CSV, load the CSV instead.', 'bad');
+          render({ error: String(e), tip: 'Try selecting insanejohnpwnforums_records.csv or insanejohnpwnforums_errors.csv' });
+        } finally {
+          els.load.disabled = false;
+        }
+      });
+
+      els.lookup.addEventListener('click', () => {
+        if (!jsonData) return;
+        const id = els.id.value.trim();
+        if (!id) return;
+        const v = jsonData[id];
+        if (v === undefined) {
+          render({ id, found: false });
+        } else {
+          render({ id, ...v });
+        }
+      });
+
+      els.random.addEventListener('click', () => {
+        if (!jsonData) return;
+        const k = jsonKeys[Math.floor(Math.random() * jsonKeys.length)];
+        render({ id: k, ...jsonData[k] });
+      });
+
+      document.getElementById('jsearch').addEventListener('click', () => {
+        recomputeView(true);
+      });
+
+      document.getElementById('jclear').addEventListener('click', () => {
+        document.getElementById('jq').value = '';
+        document.getElementById('jcol').value = 'any';
+        columnFilters = {};
+        viewKeys = jsonKeys ? jsonKeys.slice() : null;
+        viewPage = 0;
+        if (viewKeys) {
+          setStatus(`Showing all (${viewKeys.length})`, 'ok');
+          recomputeView(true);
+        }
+      });
+
+      document.getElementById('jq').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') recomputeView(true);
+      });
+
+      document.getElementById('jq').addEventListener('input', () => {
+        scheduleRecomputeView();
+      });
+
+      document.getElementById('pageSize').addEventListener('change', () => {
+        if (!jsonData || !viewKeys) return;
+        viewPage = 0;
+        renderList();
+      });
+
+      document.getElementById('prev').addEventListener('click', () => {
+        if (!jsonData || !viewKeys) return;
+        viewPage = Math.max(0, viewPage - 1);
+        renderList();
+      });
+
+      document.getElementById('next').addEventListener('click', () => {
+        if (!jsonData || !viewKeys) return;
+        viewPage = viewPage + 1;
+        renderList();
+      });
+
+      document.getElementById('jfull').addEventListener('click', () => {
+        if (!jsonData) return;
+        setStatus('Rendering full JSON...', 'muted');
+        els.list.textContent = '';
+        render(jsonData);
+        setStatus('Rendered full JSON (scroll in the result box)', 'ok');
+      });
+
+      document.getElementById('search').addEventListener('click', async () => {
+        if (!csvFile) return;
+        const q = document.getElementById('q').value.trim();
+        const col = document.getElementById('col').value;
+        const limit = document.getElementById('limit').value;
+        if (!q) {
+          render({ error: 'Enter a search text first' });
+          return;
+        }
+        setStatus('Searching CSV...', 'muted');
+        const res = await scanCsv(csvFile, { q, col, limit, collectMatches: true });
+        setStatus(`Found ${res.matches.length}${res.truncated ? '+' : ''} matches`, 'ok');
+        render({ query: q, column: col, matches: res.matches, truncated: res.truncated });
+      });
+    </script>
+  </body>
+</html>
+

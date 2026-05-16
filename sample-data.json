@@ -1,0 +1,139 @@
+{
+  "users": [
+    {
+      "id": "user_001",
+      "username": "johndoe",
+      "email": "john.doe@example.com",
+      "firstName": "John",
+      "lastName": "Doe",
+      "age": 32,
+      "role": "admin",
+      "isActive": true,
+      "createdAt": "2023-01-15T08:30:00Z",
+      "lastLogin": "2024-03-20T14:22:10Z",
+      "department": "Engineering",
+      "salary": 95000,
+      "location": {
+        "city": "San Francisco",
+        "country": "USA",
+        "timezone": "America/Los_Angeles"
+      },
+      "skills": ["JavaScript", "Python", "React", "Node.js", "AWS"],
+      "projects": [
+        { "name": "Dashboard Redesign", "status": "completed", "year": 2023 },
+        { "name": "API Migration", "status": "in_progress", "year": 2024 }
+      ]
+    },
+    {
+      "id": "user_002",
+      "username": "sarahsmith",
+      "email": "sarah.smith@example.com",
+      "firstName": "Sarah",
+      "lastName": "Smith",
+      "age": 28,
+      "role": "manager",
+      "isActive": true,
+      "createdAt": "2023-03-10T10:15:00Z",
+      "lastLogin": "2024-03-21T09:45:30Z",
+      "department": "Product",
+      "salary": 110000,
+      "location": {
+        "city": "New York",
+        "country": "USA",
+        "timezone": "America/New_York"
+      },
+      "skills": ["Product Management", "Agile", "Data Analysis", "Figma"],
+      "projects": [
+        { "name": "Mobile App Launch", "status": "completed", "year": 2023 },
+        { "name": "User Research Initiative", "status": "in_progress", "year": 2024 }
+      ]
+    },
+    {
+      "id": "user_003",
+      "username": "mikeross",
+      "email": "mike.ross@example.com",
+      "firstName": "Mike",
+      "lastName": "Ross",
+      "age": 35,
+      "role": "developer",
+      "isActive": false,
+      "createdAt": "2022-06-20T14:30:00Z",
+      "lastLogin": "2023-12-15T16:20:00Z",
+      "department": "Engineering",
+      "salary": 85000,
+      "location": {
+        "city": "London",
+        "country": "UK",
+        "timezone": "Europe/London"
+      },
+      "skills": ["Java", "Spring Boot", "PostgreSQL", "Docker"],
+      "projects": [
+        { "name": "Legacy Migration", "status": "completed", "year": 2022 },
+        { "name": "Microservices Architecture", "status": "cancelled", "year": 2023 }
+      ]
+    },
+    {
+      "id": "user_004",
+      "username": "emilychen",
+      "email": "emily.chen@example.com",
+      "firstName": "Emily",
+      "lastName": "Chen",
+      "age": 26,
+      "role": "designer",
+      "isActive": true,
+      "createdAt": "2023-08-05T09:00:00Z",
+      "lastLogin": "2024-03-19T11:30:00Z",
+      "department": "Design",
+      "salary": 78000,
+      "location": {
+        "city": "Singapore",
+        "country": "Singapore",
+        "timezone": "Asia/Singapore"
+      },
+      "skills": ["UI/UX Design", "Adobe Creative Suite", "Figma", "Motion Graphics"],
+      "projects": [
+        { "name": "Brand Refresh", "status": "completed", "year": 2023 },
+        { "name": "Design System", "status": "in_progress", "year": 2024 }
+      ]
+    },
+    {
+      "id": "user_005",
+      "username": "alexturner",
+      "email": "alex.turner@example.com",
+      "firstName": "Alex",
+      "lastName": "Turner",
+      "age": 31,
+      "role": "analyst",
+      "isActive": true,
+      "createdAt": "2023-02-14T13:45:00Z",
+      "lastLogin": "2024-03-22T08:15:00Z",
+      "department": "Data Science",
+      "salary": 92000,
+      "location": {
+        "city": "Toronto",
+        "country": "Canada",
+        "timezone": "America/Toronto"
+      },
+      "skills": ["Python", "R", "SQL", "Tableau", "Machine Learning"],
+      "projects": [
+        { "name": "Predictive Analytics Model", "status": "completed", "year": 2023 },
+        { "name": "Customer Segmentation", "status": "in_progress", "year": 2024 }
+      ]
+    }
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "generatedAt": "2024-03-22T10:00:00Z",
+    "totalRecords": 5,
+    "categories": ["user_profiles", "employee_data"]
+  },
+  "settings": {
+    "theme": "dark",
+    "itemsPerPage": 10,
+    "features": {
+      "search": true,
+      "export": true,
+      "filters": true
+    }
+  }
+}
